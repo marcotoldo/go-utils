@@ -46,12 +46,43 @@ func TestSimpleParseJwt(t *testing.T) {
 		assert.ErrorContains(t, err, "unknown 'kid'")
 	})
 
-	t.Run("should return error if token expired", func(t *testing.T) {
+	t.Run("should return error if token has no exp and no iat", func(t *testing.T) {
+		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
+			"sub":   "1234567890",
+			"name":  "John Doe",
+			"admin": true,
+		})
+		token.Header["kid"] = "foo"
+
+		tokenString, err := token.SignedString(testPrivateKey)
+		assert.Nil(t, err)
+
+		_, err = jwtutil.DecodeClaimsJson(tokenString, &testPublicKeys)
+		assert.ErrorContains(t, err, "invalid token, no ext, no iat")
+	})
+
+	t.Run("should return error if token expired (ext)", func(t *testing.T) {
 		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 			"sub":   "1234567890",
 			"name":  "John Doe",
 			"admin": true,
 			"exp":   time.Now().Add(-time.Hour * 24).Unix(),
+		})
+		token.Header["kid"] = "foo"
+
+		tokenString, err := token.SignedString(testPrivateKey)
+		assert.Nil(t, err)
+
+		_, err = jwtutil.DecodeClaimsJson(tokenString, &testPublicKeys)
+		assert.ErrorContains(t, err, "expired")
+	})
+
+	t.Run("should return error if token expired (iat)", func(t *testing.T) {
+		token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
+			"sub":   "1234567890",
+			"name":  "John Doe",
+			"admin": true,
+			"iat":   time.Now().Add(-time.Hour * 24).Unix(),
 		})
 		token.Header["kid"] = "foo"
 
@@ -136,6 +167,7 @@ XTTA5wr4+HCHLS8kq11le0TBML9LdlCxaezJxCcxipNv8PbffErk0Bx8WoJXlBlS
 GEehsDL1tvWKQDRAGYAdvyPV8MnTfLL2ko6ZzDDukFf2uNpZwmGwyQLL3qs2DfEF
 4yLKkD6ABxAQhatbRzR7fMw=
 -----END PRIVATE KEY-----`)
+
 var testPublicKeyPEM = []byte(`-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwLUWnysl4u5JErU/ap2H
 W+EojG6Co+dX9EcO+8WrxIXT3c7fNap0Lf4pAs2nV+V486SxjU5gsvi0+76MDhl9

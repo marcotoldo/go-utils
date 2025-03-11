@@ -41,12 +41,31 @@ func DecodeClaimsJson(tokenString string, publicKeys *map[string]*rsa.PublicKey)
 		return nil, errors.New("invalid claims")
 	}
 
-	expiresAt, err := claims.GetExpirationTime()
-	if err != nil {
-		return nil, err
-	}
-	if expiresAt.Before(time.Now()) {
-		return nil, errors.New("token expired")
+	// before trying to get expiration time need to check the claim 'exp' is set otherwise
+	// a segmentation error is raised
+	_, ok = claims["exp"]
+	if ok {
+		expiresAt, err := claims.GetExpirationTime()
+		if err != nil {
+			return nil, err
+		}
+		if expiresAt.Before(time.Now()) {
+			return nil, errors.New("token expired")
+		}
+	} else {
+		// no claim "exp", check for "iat" with minimal TTL (for tokens generated on client side "iat" is the relevant time claim)
+		_, ok = claims["iat"]
+		if ok {
+			issuedAt, err := claims.GetIssuedAt()
+			if err != nil {
+				return nil, err
+			}
+			if issuedAt.Before(time.Now().Add(-30 * time.Second)) {
+				return nil, errors.New("token expired")
+			}
+		} else {
+			return nil, errors.New("invalid token, no ext, no iat")
+		}
 	}
 
 	jsonData, err := json.Marshal(claims)
