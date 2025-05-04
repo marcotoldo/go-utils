@@ -139,6 +139,8 @@ func TestSimpleParseJwt(t *testing.T) {
 
 }
 
+// this is NOT a security flaw at all, it's just a test private key generated on purpose
+// for testing and meant to stay here for simplicity
 var testPrivateKeyPEM = []byte(`-----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDAtRafKyXi7kkS
 tT9qnYdb4SiMboKj51f0Rw77xavEhdPdzt81qnQt/ikCzadX5XjzpLGNTmCy+LT7
